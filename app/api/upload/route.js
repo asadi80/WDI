@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 /* -------------------- helpers -------------------- */
 
-function computeEdxCategory(row: any) {
+function computeEdxCategory(row) {
   const elements = [];
 
   if (row["CARBON"]) elements.push("C");
