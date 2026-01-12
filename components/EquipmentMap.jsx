@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-/* =========================
-   EDX COLORS
-========================= */
+/* EDX Colors */
 const EDX_COLORS = {
   "C+Si+O": "#e11d48",
   "C+Si": "#f97316",
@@ -13,15 +11,10 @@ const EDX_COLORS = {
   Unknown: "#9ca3af",
 };
 
-/* =========================
-   DEG → RAD
-========================= */
+/* Degree to Radian conversion */
 const deg = (d) => (d * Math.PI) / 180;
 
-/* =========================
-   MANUAL NOTCH ROTATIONS
-   (your instructions)
-========================= */
+/* Manual notch rotations for each module */
 export const MODULE_WAFER_ROTATION = {
   // EFEM + LPs
   EFEM: deg(-90),
@@ -50,9 +43,6 @@ export const MODULE_WAFER_ROTATION = {
   LLST2: deg(60),
 };
 
-/* =========================
-   COMPONENT
-========================= */
 export default function WaferPhysicalLocation({
   locationKey,
   manualLocation,
@@ -60,39 +50,39 @@ export default function WaferPhysicalLocation({
   defects = [],
 }) {
   const canvasRef = useRef(null);
+  const [hoveredModule, setHoveredModule] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
-  /* =========================
-     MODULE GEOMETRY
-  ========================= */
+  /* Module geometry definitions */
   const MODULES = {
-    LP1: { x: 24, y: 145, w: 107, h: 106 },
-    LP2: { x: 24, y: 321, w: 107, h: 106 },
-    LP3: { x: 24, y: 497, w: 107, h: 106 },
+    LP1: { x: 24, y: 145, w: 107, h: 106, label: "LP 1" },
+    LP2: { x: 24, y: 321, w: 107, h: 106, label: "LP 2" },
+    LP3: { x: 24, y: 497, w: 107, h: 106, label: "LP 3" },
 
-    EFEM: { x: 153, y: 320, w: 108, h: 105 },
+    EFEM: { x: 153, y: 320, w: 108, h: 105, label: "EFEM" },
 
-    LLST1: { x: 376, y: 387, w: 107, h: 110 },
-    LLST2: { x: 376, y: 261, w: 107, h: 110 },
+    LLST1: { x: 376, y: 387, w: 107, h: 110, label: "LL ST1" },
+    LLST2: { x: 376, y: 261, w: 107, h: 110, label: "LL ST2" },
 
-    TMST1: { x: 600, y: 388, w: 103, h: 106 },
-    TMST2: { x: 600, y: 266, w: 103, h: 102 },
+    TMST1: { x: 600, y: 388, w: 103, h: 106, label: "TM ST1" },
+    TMST2: { x: 600, y: 266, w: 103, h: 102, label: "TM ST2" },
 
-    PM1ST1: { x: 726, y: 569, w: 112, h: 102 },
-    PM1ST2: { x: 594, y: 569, w: 112, h: 102 },
+    PM1ST1: { x: 726, y: 569, w: 112, h: 102, label: "PM 1 ST1" },
+    PM1ST2: { x: 594, y: 569, w: 112, h: 102, label: "PM 1 ST2" },
 
-    PM2ST1: { x: 946, y: 260, w: 112, h: 102 },
-    PM2ST2: { x: 946, y: 385, w: 112, h: 108 },
+    PM2ST1: { x: 946, y: 260, w: 112, h: 102, label: "PM 2 ST1" },
+    PM2ST2: { x: 946, y: 385, w: 112, h: 108, label: "PM 2 ST2" },
 
-    PM3ST1: { x: 732, y: 76, w: 112, h: 102 },
-    PM3ST2: { x: 600, y: 76, w: 112, h: 102 },
+    PM3ST1: { x: 732, y: 76, w: 112, h: 102, label: "PM 3 ST1" },
+    PM3ST2: { x: 600, y: 76, w: 112, h: 102, label: "PM 3 ST2" },
   };
+
   function resolveModuleFromChamber(chamber) {
     if (!chamber) return null;
 
-    // normalize: uppercase, remove spaces
     const s = chamber.toUpperCase().replace(/\s+/g, "");
 
-    // ---------- PM ----------
+    // PM modules
     if (/PM1[-_]?S1/.test(s)) return "PM1ST1";
     if (/PM1[-_]?S2/.test(s)) return "PM1ST2";
 
@@ -102,28 +92,26 @@ export default function WaferPhysicalLocation({
     if (/PM3[-_]?S1/.test(s)) return "PM3ST1";
     if (/PM3[-_]?S2/.test(s)) return "PM3ST2";
 
-    // ---------- TM ----------
+    // TM modules
     if (/TM[-_]?ST1|TM[-_]?S1/.test(s)) return "TMST1";
     if (/TM[-_]?ST2|TM[-_]?S2/.test(s)) return "TMST2";
 
-    // ---------- LL ----------
+    // LL modules
     if (/LL[-_]?ST1|LL[-_]?S1/.test(s)) return "LLST1";
     if (/LL[-_]?ST2|LL[-_]?S2/.test(s)) return "LLST2";
 
-    // ---------- LP ----------
+    // LP modules
     if (/LP1/.test(s)) return "LP1";
     if (/LP2/.test(s)) return "LP2";
     if (/LP3/.test(s)) return "LP3";
 
-    // ---------- EFEM / tool ----------
+    // EFEM
     if (s.startsWith("APT")) return "EFEM";
 
     return null;
   }
 
-  /* =========================
-     RESOLVE LOCATION
-  ========================= */
+  /* Resolve the active location */
   const resolvedKey = useMemo(() => {
     if (manualLocation && MODULES[manualLocation]) {
       return manualLocation;
@@ -139,128 +127,263 @@ export default function WaferPhysicalLocation({
 
   const box = resolvedKey ? MODULES[resolvedKey] : null;
 
-useEffect(() => {
-  if (!canvasRef.current || !box) return;
+  /* Calculate defect statistics */
+  const defectStats = useMemo(() => {
+    const edxCounts = {};
+    defects.forEach((d) => {
+      edxCounts[d.edxCategory] = (edxCounts[d.edxCategory] || 0) + 1;
+    });
+    return { total: defects.length, byType: edxCounts };
+  }, [defects]);
 
-  const canvas = canvasRef.current;
-  const ctx = canvas.getContext("2d");
+  /* Draw wafer on canvas */
+  useEffect(() => {
+    if (!canvasRef.current || !box) return;
 
-  const size = Math.round(120 * 1.03); // +3%
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = Math.round(46 * 1.03);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
 
-  const angle = MODULE_WAFER_ROTATION[resolvedKey] || 0;
+    const size = Math.round(120 * 1.03);
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = Math.round(46 * 1.03);
 
-  ctx.clearRect(0, 0, size, size);
+    const angle = MODULE_WAFER_ROTATION[resolvedKey] || 0;
 
-  // =========================
-  // ROTATE WHOLE WAFER SPACE
-  // =========================
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(angle);
-  ctx.translate(-cx, -cy);
+    ctx.clearRect(0, 0, size, size);
 
-  // =========================
-  // WAFER BODY
-  // =========================
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255,255,255,0.80)";
-  ctx.fill();
-  ctx.strokeStyle = "#64748b";
-  ctx.lineWidth = 2;
-  ctx.stroke();
+    // Rotate canvas
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.translate(-cx, -cy);
 
-  // =========================
-  // NOTCH (FIXED ON WAFER)
-  // 6 o’clock reference
-  // =========================
-  ctx.beginPath();
-  ctx.moveTo(cx, cy + r);
-  ctx.lineTo(cx - 7, cy + r - 10);
-  ctx.lineTo(cx + 7, cy + r - 10);
-  ctx.closePath();
-  ctx.fillStyle = "#2563eb";
-  ctx.fill();
-
-  // =========================
-  // DEFECTS (WAFER COORDS)
-  // =========================
-  defects.forEach((d) => {
-    const x = cx + (d.x / 200) * r;
-    const y = cy - (d.y / 200) * r; // wafer Y up
-
+    // Draw wafer body
     ctx.beginPath();
-    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = EDX_COLORS[d.edxCategory] || "#666";
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.90)";
     ctx.fill();
-  });
+    ctx.strokeStyle = "#64748b";
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-  ctx.restore();
-}, [box, defects, resolvedKey]);
+    // Draw notch (fixed at 6 o'clock on wafer)
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + r);
+    ctx.lineTo(cx - 7, cy + r - 10);
+    ctx.lineTo(cx + 7, cy + r - 10);
+    ctx.closePath();
+    ctx.fillStyle = "#2563eb";
+    ctx.fill();
 
+    // Draw defects
+    defects.forEach((d) => {
+      const x = cx + (d.x / 200) * r;
+      const y = cy - (d.y / 200) * r;
+
+      ctx.beginPath();
+      ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = EDX_COLORS[d.edxCategory] || "#666";
+      ctx.fill();
+    });
+
+    ctx.restore();
+  }, [box, defects, resolvedKey]);
 
   return (
-    <div className="overflow-auto max-h-[px]  rounded  ">
-      {/* LOCATION OVERRIDE */}
-      {onChangeLocation && (
-        <div className="flex items-center gap-3 mt-5 mb-3">
-          <span className="text-sm font-medium">Override location:</span>
-          <select
-            value={manualLocation || ""}
-            onChange={(e) => onChangeLocation(e.target.value)}
-            className="border rounded px-2 py-1 text-sm"
-          >
-            <option value="">Auto</option>
-            {Object.keys(MODULES).map((k) => (
-              <option key={k} value={k}>
-                {k}
-              </option>
+    <div className="space-y-4">
+      {/* Header with controls */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h3 className="font-semibold text-gray-900">Equipment Layout</h3>
+          <p className="text-sm text-gray-500">
+            {resolvedKey ? (
+              <>
+                Wafer location: <span className="font-medium text-gray-700">{MODULES[resolvedKey].label}</span>
+              </>
+            ) : (
+              "No location detected"
+            )}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Defect count badge */}
+          {defectStats.total > 0 && (
+            <div className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium">
+              {defectStats.total} defect{defectStats.total !== 1 ? "s" : ""}
+            </div>
+          )}
+
+          {/* Zoom controls */}
+          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.1))}
+              className="px-2 py-1 text-sm font-medium text-gray-700 hover:bg-white rounded transition-colors"
+              title="Zoom out"
+            >
+              −
+            </button>
+            <span className="px-2 text-sm text-gray-600 min-w-[3rem] text-center">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <button
+              onClick={() => setZoomLevel(Math.min(2, zoomLevel + 0.1))}
+              className="px-2 py-1 text-sm font-medium text-gray-700 hover:bg-white rounded transition-colors"
+              title="Zoom in"
+            >
+              +
+            </button>
+            <button
+              onClick={() => setZoomLevel(1)}
+              className="px-2 py-1 text-xs font-medium text-gray-600 hover:bg-white rounded transition-colors"
+              title="Reset zoom"
+            >
+              Reset
+            </button>
+          </div>
+
+          {/* Location override */}
+          {onChangeLocation && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Override:</label>
+              <select
+                value={manualLocation || ""}
+                onChange={(e) => onChangeLocation(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+              >
+                <option value="">Auto-detect</option>
+                {Object.entries(MODULES).map(([k, m]) => (
+                  <option key={k} value={k}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Equipment map */}
+      <div className="overflow-auto border-2 border-gray-200 rounded-xl bg-gray-50 shadow-inner">
+        <div
+          className="relative bg-gray-100"
+          style={{
+            width: 1100 * zoomLevel,
+            height: 750 * zoomLevel,
+            transition: "all 0.2s ease",
+          }}
+        >
+          <img
+            src="/equipment-layout.png"
+            alt="Tool Layout"
+            className="absolute inset-0 w-full h-full object-contain"
+            style={{ imageRendering: zoomLevel > 1 ? "crisp-edges" : "auto" }}
+          />
+
+          {/* Module boxes */}
+          {Object.entries(MODULES).map(([name, m]) => {
+            const isActive = name === resolvedKey;
+            const isHovered = name === hoveredModule;
+
+            return (
+              <div
+                key={name}
+                onMouseEnter={() => setHoveredModule(name)}
+                onMouseLeave={() => setHoveredModule(null)}
+                className={`absolute border-2 transition-all cursor-pointer ${
+                  isActive
+                    ? "border-blue-500 bg-blue-500/10"
+                    : isHovered
+                    ? "border-blue-300 bg-blue-300/10"
+                    : "border-blue-400/40 bg-transparent"
+                }`}
+                style={{
+                  left: m.x * zoomLevel,
+                  top: m.y * zoomLevel,
+                  width: m.w * zoomLevel,
+                  height: m.h * zoomLevel,
+                }}
+              >
+                {/* Module label */}
+                <span
+                  className={`absolute -top-5 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                    isActive
+                      ? "bg-blue-500 text-white"
+                      : isHovered
+                      ? "bg-blue-400 text-white"
+                      : "bg-white text-gray-700 border border-gray-300"
+                  }`}
+                  style={{ fontSize: 10 * zoomLevel }}
+                >
+                  {name}
+                </span>
+
+                {/* Tooltip on hover */}
+                {isHovered && !isActive && (
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-10">
+                    {m.label}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                      <div className="border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Wafer visualization */}
+          {box && (
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: (box.x + box.w / 2 - 62) * zoomLevel,
+                top: (box.y + box.h / 2 - 62) * zoomLevel,
+              }}
+            >
+              <canvas
+                ref={canvasRef}
+                width={124}
+                height={124}
+                style={{
+                  width: 124 * zoomLevel,
+                  height: 124 * zoomLevel,
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Defect legend (if defects present) */}
+      {defectStats.total > 0 && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">Defect Distribution on Wafer</h4>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {Object.entries(defectStats.byType).map(([type, count]) => (
+              <div key={type} className="flex items-center gap-2">
+                <span
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: EDX_COLORS[type] || "#666" }}
+                />
+                <span className="text-xs text-gray-700">
+                  {type}: <span className="font-medium">{count}</span>
+                </span>
+              </div>
             ))}
-          </select>
+          </div>
         </div>
       )}
 
-      {/* TOOL MAP */}
-      <div className="relative w-[1100px] h-[750px] border rounded bg-gray-100">
-        <img
-          src="/equipment-layout.png"
-          alt="Tool Layout"
-          className="absolute inset-0 w-full h-full object-contain"
-        />
-
-        {/* MODULE BOXES */}
-        {Object.entries(MODULES).map(([name, m]) => (
-          <div
-            key={name}
-            className="absolute border border-blue-400 text-[10px] pointer-events-none"
-            style={{
-              left: m.x,
-              top: m.y,
-              width: m.w,
-              height: m.h,
-            }}
-          >
-            <span className="absolute -top-4 bg-white px-1">{name}</span>
-          </div>
-        ))}
-
-        {/* WAFER */}
-        {box && (
-          <canvas
-            ref={canvasRef}
-            width={124}
-            height={124}
-            className="absolute pointer-events-none"
-            style={{
-              left: box.x + box.w / 2 - 62,
-              top: box.y + box.h / 2 - 62,
-            }}
-          />
-        )}
-      </div>
+      {/* No location warning */}
+      {!resolvedKey && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+          <p className="text-sm text-yellow-800">
+            ⚠️ Unable to determine wafer location from chamber data.
+            {onChangeLocation && " Use the override dropdown to manually select a module."}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
