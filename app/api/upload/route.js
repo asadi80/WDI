@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
-import XLSX from "xlsx";
 import clientPromise from "@/lib/mongodb";
 import { parseAndValidateExcel } from "@/lib/parseExcel";
 import { computeWaferFeatures } from "@/lib/computeFeatures";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-function computeEdxCategory(row) {
-  const elements = [];
+/* -------------------- helpers -------------------- */
+
+function computeEdxCategory(row: any) {
+  const elements: string[] = [];
 
   if (row["CARBON"]) elements.push("C");
   if (row["SILICON"]) elements.push("Si");
@@ -17,32 +19,46 @@ function computeEdxCategory(row) {
   return elements.length ? elements.join("+") : "Unknown";
 }
 
-export async function POST(req) {
-  console.log("📥 /api/upload called");
+/* -------------------- route -------------------- */
+
+export async function POST(req: Request) {
+  console.log("🚀 /api/upload called");
 
   try {
-    // 1️⃣ Read file
+    /* ---------- 1. Read file ---------- */
     const formData = await req.formData();
-    const file = formData.get("file");
+    const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
+    console.log("📄 File name:", file.name);
+    console.log("📦 File size:", file.size);
+
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // 2️⃣ Parse Excel
-    const rows = parseAndValidateExcel(buffer);
+    /* ---------- 2. Parse Excel ---------- */
+    // TEMP SAFETY LIMIT – remove later if you move off serverless
+    const rows = parseAndValidateExcel(buffer).slice(0, 500);
 
-    // 3️⃣ MongoDB
+    console.log("📊 Rows parsed:", rows.length);
+
+    /* ---------- 3. MongoDB ---------- */
     const client = await clientPromise;
     const db = client.db("waferdb");
 
-    const wafersMap = {};
+    console.log("🧠 Mongo connected");
 
-    rows.forEach((row) => {
+    /* ---------- 4. Build wafer map ---------- */
+    const wafersMap: Record<
+      string,
+      { wafer: any; defects: any[] }
+    > = {};
+
+    for (const row of rows) {
       const waferId = row["WAFER_ID of CU EDX data"];
-      if (!waferId) return;
+      if (!waferId) continue;
 
       if (!wafersMap[waferId]) {
         wafersMap[waferId] = {
@@ -55,12 +71,14 @@ export async function POST(req) {
             parentEntity: row["PARENT_ENTITY"],
             inspectionTime: new Date(row["EDX_INSPECTION_DATETIME"]),
             spcDataId: row["SPC_DATA_ID"],
+            createdAt: new Date(),
           },
           defects: [],
         };
       }
 
-      const edxCategory = row["EDX_CATEGORY"] || computeEdxCategory(row);
+      const edxCategory =
+        row["EDX_CATEGORY"] || computeEdxCategory(row);
 
       wafersMap[waferId].defects.push({
         waferId,
@@ -70,8 +88,10 @@ export async function POST(req) {
         x: Number(row["X"]) || 0,
         y: Number(row["Y"]) || 0,
 
-        defectSize: Number(row["DEFECT_SIZE of CU EDX data"]) || null,
-        imageCount: Number(row["IMAGE_COUNT of CU EDX data"]) || 0,
+        defectSize:
+          Number(row["DEFECT_SIZE of CU EDX data"]) || null,
+        imageCount:
+          Number(row["IMAGE_COUNT of CU EDX data"]) || 0,
 
         edxCategory,
 
@@ -84,26 +104,41 @@ export async function POST(req) {
 
         createdAt: new Date(),
       });
-    });
+    }
 
-    // 4️⃣ Insert data
-    let wafersInserted = 0;
+    const waferIds = Object.keys(wafersMap);
+    console.log("🧩 Wafers found:", waferIds.length);
+
+    /* ---------- 5. Insert wafers (BATCH) ---------- */
+    await db.collection("wafers").bulkWrite(
+      waferIds.map((waferId) => ({
+        updateOne: {
+          filter: { waferId },
+          update: { $setOnInsert: wafersMap[waferId].wafer },
+          upsert: true,
+        },
+      }))
+    );
+
+    /* ---------- 6. Insert defects + features ---------- */
     let defectsInserted = 0;
 
-    for (const waferId in wafersMap) {
-      const { wafer, defects } = wafersMap[waferId];
+    for (const waferId of waferIds) {
+      const { defects } = wafersMap[waferId];
 
-      await db
-        .collection("wafers")
-        .updateOne({ waferId }, { $setOnInsert: wafer }, { upsert: true });
+      if (defects.length) {
+        try {
+          const res = await db
+            .collection("defects")
+            .insertMany(defects, { ordered: false });
 
-      try {
-        const res = await db.collection("defects").insertMany(defects, {
-          ordered: false,
-        });
-        defectsInserted += res.insertedCount;
-      } catch (e) {
-        if (e.code !== 11000) throw e;
+          defectsInserted += res.insertedCount;
+        } catch (e: any) {
+          if (e?.code !== 11000) {
+            console.error("❌ Defect insert error:", e);
+            throw e;
+          }
+        }
       }
 
       const features = computeWaferFeatures(defects);
@@ -119,20 +154,21 @@ export async function POST(req) {
         },
         { upsert: true }
       );
-
-      wafersInserted++;
     }
+
+    /* ---------- 7. Done ---------- */
+    console.log("✅ Upload complete");
 
     return NextResponse.json({
       status: "success",
-      rows: rows.length,
-      wafersProcessed: wafersInserted,
-      defectsProcessed: defectsInserted,
+      rowsProcessed: rows.length,
+      wafersProcessed: waferIds.length,
+      defectsInserted,
     });
-  } catch (err) {
-    console.error("UPLOAD ERROR:", err);
+  } catch (err: any) {
+    console.error("❌ UPLOAD ERROR:", err);
 
-    if (err.message === "Missing required columns") {
+    if (err?.message === "Missing required columns") {
       return NextResponse.json(
         {
           error: err.message,
@@ -142,6 +178,9 @@ export async function POST(req) {
       );
     }
 
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: err?.message || "Upload failed" },
+      { status: 500 }
+    );
   }
 }
