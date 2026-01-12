@@ -27,7 +27,7 @@ export async function POST(req) {
   try {
     /* ---------- 1. Read file ---------- */
     const formData = await req.formData();
-    const file = formData.get("file") as File | null;
+    const file = formData.get("file");
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -143,7 +143,7 @@ for (const row of rows) {
             .insertMany(defects, { ordered: false });
 
           defectsInserted += res.insertedCount;
-        } catch (e: any) {
+        } catch (e) {
           if (e?.code !== 11000) {
             console.error("❌ Defect insert error:", e);
             throw e;
@@ -175,7 +175,7 @@ for (const row of rows) {
       wafersProcessed: waferIds.length,
       defectsInserted,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("❌ UPLOAD ERROR:", err);
 
     if (err?.message === "Missing required columns") {
