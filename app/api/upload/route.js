@@ -21,7 +21,7 @@ function computeEdxCategory(row) {
 
 /* -------------------- route -------------------- */
 
-export async function POST(req: Request) {
+export async function POST(req) {
   console.log("🚀 /api/upload called");
 
   try {
