@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 /* -------------------- helpers -------------------- */
 
 function computeEdxCategory(row: any) {
-  const elements: string[] = [];
+  const elements = [];
 
   if (row["CARBON"]) elements.push("C");
   if (row["SILICON"]) elements.push("Si");
