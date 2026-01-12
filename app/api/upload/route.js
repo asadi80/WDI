@@ -51,10 +51,20 @@ export async function POST(req) {
     console.log("🧠 Mongo connected");
 
     /* ---------- 4. Build wafer map ---------- */
-    const wafersMap: Record<
-      string,
-      { wafer: any; defects: any[] }
-    > = {};
+   const wafersMap = {};
+
+for (const row of rows) {
+  const waferId = row.WAFER_ID;
+
+  if (!wafersMap[waferId]) {
+    wafersMap[waferId] = {
+      wafer: row,
+      defects: []
+    };
+  }
+
+  wafersMap[waferId].defects.push(row);
+}
 
     for (const row of rows) {
       const waferId = row["WAFER_ID of CU EDX data"];
