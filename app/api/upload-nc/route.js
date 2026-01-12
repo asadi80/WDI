@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import clientPromise from "@/lib/mongodb";
 import { parseExcelNC } from "@/lib/parseExcelNC";
+export const runtime = "nodejs";
 
 export async function POST(req) {
     console.log("🚀 NC upload started");

@@ -4,6 +4,8 @@ import clientPromise from "@/lib/mongodb";
 import { parseAndValidateExcel } from "@/lib/parseExcel";
 import { computeWaferFeatures } from "@/lib/computeFeatures";
 
+export const runtime = "nodejs";
+
 function computeEdxCategory(row) {
   const elements = [];
 
