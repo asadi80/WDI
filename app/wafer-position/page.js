@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Upload, Image as ImageIcon } from "lucide-react";
+import { Upload, ClipboardPaste, Image as ImageIcon } from "lucide-react";
+
 import ToolLayout from "@/components/tool-layout/ToolLayout";
 import WaferCanvas from "@/components/tool-layout/WaferCanvas";
 import { MODULES } from "@/components/tool-layout/MODULES";
@@ -11,16 +12,44 @@ export default function WaferImagePage() {
   const [moduleKey, setModuleKey] = useState("PM2ST1");
   const fileRef = useRef(null);
 
+  /* ---------- File upload ---------- */
   const handleFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImage(URL.createObjectURL(file));
   };
 
+  /* ---------- Paste button ---------- */
+  const handlePasteClick = async () => {
+    try {
+      if (!navigator.clipboard?.read) {
+        alert("Clipboard image paste not supported in this browser.");
+        return;
+      }
+
+      const items = await navigator.clipboard.read();
+
+      for (const item of items) {
+        for (const type of item.types) {
+          if (type.startsWith("image/")) {
+            const blob = await item.getType(type);
+            setImage(URL.createObjectURL(blob));
+            return;
+          }
+        }
+      }
+
+      alert("No image found in clipboard.");
+    } catch (err) {
+      console.error(err);
+      alert("Unable to read from clipboard. Try Ctrl+V instead.");
+    }
+  };
+
   return (
     <div className="space-y-4 p-4">
-      <div className="flex items-center gap-4">
-        {/* Hidden file input */}
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Hidden input */}
         <input
           ref={fileRef}
           type="file"
@@ -35,7 +64,16 @@ export default function WaferImagePage() {
           className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 shadow-sm text-sm font-medium transition"
         >
           <Upload className="w-4 h-4" />
-          Upload Wafer Image
+          Upload Image
+        </button>
+
+        {/* Paste button */}
+        <button
+          onClick={handlePasteClick}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 shadow-sm text-sm font-medium transition"
+        >
+          <ClipboardPaste className="w-4 h-4" />
+          Paste from Clipboard
         </button>
 
         {/* Preview indicator */}
