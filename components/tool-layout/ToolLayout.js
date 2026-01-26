@@ -29,7 +29,7 @@ export default function ToolLayout({ activeModule, zoom = 1, children }) {
                 ? "border-blue-500 bg-blue-500/10"
                 : hovered === key
                 ? "border-blue-300 bg-blue-300/10"
-                : "border-blue-400/40"
+                : "no border-blue-400/40"
             }`}
             style={{
               left: m.x * zoom,

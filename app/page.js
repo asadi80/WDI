@@ -60,7 +60,7 @@ export default function HomePage() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <Link href="/wafers" className="group">
+          <Link href="/cu-wafers" className="group">
             <div className="bg-white rounded-2xl border-2 border-gray-200 hover:border-orange-400 shadow-sm hover:shadow-lg p-6 transition-all duration-200 h-full">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium text-gray-500 uppercase tracking-wide">
@@ -139,6 +139,44 @@ export default function HomePage() {
                 Wafer Position Check
               </div>
               <p className="text-xs text-purple-600 mt-1">
+                Displays where the wafer is currently positioned
+              </p>
+            </div>
+          </Link>
+
+            <Link href="/waferPosWithEDX" className="group">
+            <div className="bg-gradient-to-br from-yellow-50 to-pink-50 rounded-2xl border-2 border-yellow-200 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-yellow-600 uppercase tracking-wide">
+                  Wafer Position with EDX
+                </div>
+                <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                  <span className="text-xl">🔬</span>
+                </div>
+              </div>
+              <div className="text-lg font-semibold text-yellow-900 mt-2">
+                Wafer Position Check
+              </div>
+              <p className="text-xs text-yellow-600 mt-1">
+                Displays where the wafer is currently positioned
+              </p>
+            </div>
+          </Link>
+
+            <Link href="/wafer-sessions" className="group">
+            <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl border-2 border-red-200 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-red-600 uppercase tracking-wide">
+                  All Wafer Position with EDX
+                </div>
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <span className="text-xl">🔬</span>
+                </div>
+              </div>
+              <div className="text-lg font-semibold text-red-900 mt-2">
+                All Wafer Position Check with Plan
+              </div>
+              <p className="text-xs text-red-600 mt-1">
                 Displays where the wafer is currently positioned
               </p>
             </div>

@@ -29,7 +29,7 @@ const normalizeWafer = (w) => {
   };
 };
 
-export default function NCWafersPage() {
+export default function WafersPage() {
   const [wafers, setWafers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,9 +45,9 @@ export default function NCWafersPage() {
   const [filterEdx, setFilterEdx] = useState("all");
 
   useEffect(() => {
-    fetch("/api/nc-wafers-with-defects")
+    fetch("/api/cu-wafers-with-defects")
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch NC wafers");
+        if (!res.ok) throw new Error("Failed to fetch wafers");
         return res.json();
       })
       .then((data) => {
@@ -155,7 +155,7 @@ export default function NCWafersPage() {
         <div className="max-w-xl mx-auto">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-orange-600 transition-colors"
           >
             ← Back to Home
           </Link>
@@ -165,16 +165,16 @@ export default function NCWafersPage() {
         <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">📀 NC Wafers Analysis</h1>
+              <h1 className="text-3xl font-bold text-gray-900">📀 CU Wafers Analysis</h1>
               <p className="text-gray-500 text-sm mt-1">
                 Detailed defect and elemental composition data
               </p>
             </div>
             <Link
-              href="/upload-nc"
-              className="bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 transition-colors font-medium shadow-sm"
+              href="/upload"
+              className="bg-orange-600 text-white px-5 py-2.5 rounded-lg hover:bg-orange-700 transition-colors font-medium shadow-sm"
             >
-              + Upload NC Data
+              + Upload CU Data
             </Link>
           </div>
 
@@ -226,13 +226,13 @@ export default function NCWafersPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search wafer, lot, chamber, EDX, elements..."
-                className="col-span-2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                className="col-span-2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
               />
 
               <select
                 value={filterChamber}
                 onChange={(e) => setFilterChamber(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none bg-white"
               >
                 <option value="all">All Chambers</option>
                 {chambers.map((c) => (
@@ -243,7 +243,7 @@ export default function NCWafersPage() {
               <select
                 value={defectFilter}
                 onChange={(e) => setDefectFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none bg-white"
               >
                 <option value="all">All Defects</option>
                 <option value="with">With Defects</option>
@@ -253,7 +253,7 @@ export default function NCWafersPage() {
               <select
                 value={filterEdx}
                 onChange={(e) => setFilterEdx(e.target.value)}
-                className="col-span-4 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white"
+                className="col-span-4 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none bg-white"
               >
                 <option value="all">All EDX Categories ({edxOptions.length})</option>
                 {edxOptions.map((e) => (
@@ -267,8 +267,8 @@ export default function NCWafersPage() {
         {/* Loading State */}
         {loading && (
           <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-green-600 mb-4"></div>
-            <p className="text-gray-500">Loading NC wafer data...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-orange-600 mb-4"></div>
+            <p className="text-gray-500">Loading wafer data...</p>
           </div>
         )}
 
@@ -283,12 +283,12 @@ export default function NCWafersPage() {
         {!loading && !error && wafers.length === 0 && (
           <div className="bg-white rounded-xl shadow-sm p-12 text-center">
             <div className="text-6xl mb-4">📀</div>
-            <p className="text-gray-500 text-lg">No NC wafer data available</p>
+            <p className="text-gray-500 text-lg">No wafer data available</p>
             <Link
-              href="/upload-nc"
-              className="inline-block mt-4 text-green-600 hover:text-green-700 font-medium"
+              href="/upload"
+              className="inline-block mt-4 text-orange-600 hover:text-orange-700 font-medium"
             >
-              Upload your first NC wafer →
+              Upload your first wafer →
             </Link>
           </div>
         )}
@@ -304,7 +304,7 @@ export default function NCWafersPage() {
                 setDefectFilter("all");
                 setFilterEdx("all");
               }}
-              className="mt-4 text-green-600 hover:text-green-700 font-medium"
+              className="mt-4 text-orange-600 hover:text-orange-700 font-medium"
             >
               Clear all filters
             </button>
@@ -378,7 +378,7 @@ export default function NCWafersPage() {
                     <tr key={w.waferId} className="hover:bg-gray-50 transition-colors">
                       <td className="p-4 font-medium">
                         <Link
-                          href={`/ncWafer/${w.waferId}`}
+                          href={`/wafer/${w.waferId}`}
                           className="text-blue-600 hover:text-blue-700 hover:underline"
                         >
                           {w.waferId}
@@ -388,11 +388,11 @@ export default function NCWafersPage() {
                       <td className="p-4 text-gray-700">{w.slotId}</td>
                       <td className="p-4">
                         <span className="inline-block px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium">
-                          {w.chamber || "N/A"}
+                          {w.chamber}
                         </span>
                       </td>
                       <td className="p-4 text-gray-600">
-                        {w.inspectionTime ? new Date(w.inspectionTime).toLocaleString() : "-"}
+                        {new Date(w.inspectionTime).toLocaleString()}
                       </td>
                       <td className="p-4 text-center">
                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
@@ -452,7 +452,7 @@ export default function NCWafersPage() {
                     setDefectFilter("all");
                     setFilterEdx("all");
                   }}
-                  className="text-green-600 hover:text-green-700 font-medium"
+                  className="text-orange-600 hover:text-orange-700 font-medium"
                 >
                   Clear all filters
                 </button>

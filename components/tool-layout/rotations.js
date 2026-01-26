@@ -6,8 +6,8 @@ export const MODULE_WAFER_ROTATION = {
   LP2: deg(-90),
   LP3: deg(-90),
 
-  PM3ST1: deg(134),
-  PM3ST2: deg(-130),
+  PM3ST1: deg(-134),
+  PM3ST2: deg(130),
 
   PM2ST1: deg(-40),
   PM2ST2: deg(-136),
