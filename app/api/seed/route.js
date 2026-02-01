@@ -3,7 +3,7 @@ import { seedAdmin } from "@/lib/seedAdmin";
 
 export async function GET() {
   await connectDB();
-  await seedAdmin();
+  const result = await seedAdmin();
 
-  return Response.json({ ok: true });
+  return Response.json(result);
 }
