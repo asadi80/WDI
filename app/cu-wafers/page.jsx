@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+
 import Link from "next/link";
 
 /* Normalize wafer data */
@@ -30,6 +32,7 @@ const normalizeWafer = (w) => {
 };
 
 export default function WafersPage() {
+  const router = useRouter();
   const [wafers, setWafers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,7 +48,17 @@ export default function WafersPage() {
   const [filterEdx, setFilterEdx] = useState("all");
 
   useEffect(() => {
-    fetch("/api/cu-wafers-with-defects")
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+    fetch("/api/cu-wafers-with-defects", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch wafers");
         return res.json();
@@ -62,7 +75,7 @@ export default function WafersPage() {
 
   const chambers = useMemo(
     () => [...new Set(wafers.map((w) => w.chamber).filter(Boolean))].sort(),
-    [wafers]
+    [wafers],
   );
 
   const edxOptions = useMemo(() => {
@@ -74,18 +87,21 @@ export default function WafersPage() {
   const stats = useMemo(() => {
     const total = wafers.length;
     const withDefects = wafers.filter((w) => (w.defectCount || 0) > 0).length;
-    const avg = wafers.reduce((s, w) => s + (w.defectCount || 0), 0) / (total || 1);
-    
+    const avg =
+      wafers.reduce((s, w) => s + (w.defectCount || 0), 0) / (total || 1);
+
     // Count wafers with critical elements
-    const withTi = wafers.filter(w => w.elements.Ti > 0).length;
-    const withMetals = wafers.filter(w => w.elements.Ni > 0 || w.elements.Al > 0).length;
-    
-    return { 
-      total, 
-      withDefects, 
+    const withTi = wafers.filter((w) => w.elements.Ti > 0).length;
+    const withMetals = wafers.filter(
+      (w) => w.elements.Ni > 0 || w.elements.Al > 0,
+    ).length;
+
+    return {
+      total,
+      withDefects,
       avg: avg.toFixed(1),
       withTi,
-      withMetals
+      withMetals,
     };
   }, [wafers]);
 
@@ -99,14 +115,17 @@ export default function WafersPage() {
         w.chamber?.toLowerCase().includes(term) ||
         w.edx?.some((e) => e.toLowerCase().includes(term)) ||
         Object.entries(w.elements || {}).some(
-          ([k, v]) => k.toLowerCase().includes(term) || String(v).includes(term)
+          ([k, v]) =>
+            k.toLowerCase().includes(term) || String(v).includes(term),
         );
 
-      const matchesChamber = filterChamber === "all" || w.chamber === filterChamber;
+      const matchesChamber =
+        filterChamber === "all" || w.chamber === filterChamber;
 
       let matchesDefect = true;
       if (defectFilter === "with") matchesDefect = (w.defectCount || 0) > 0;
-      if (defectFilter === "without") matchesDefect = (w.defectCount || 0) === 0;
+      if (defectFilter === "without")
+        matchesDefect = (w.defectCount || 0) === 0;
 
       let matchesEdx = true;
       if (filterEdx !== "all") matchesEdx = w.edx?.includes(filterEdx);
@@ -120,8 +139,12 @@ export default function WafersPage() {
         const bVal = b[sortConfig.key];
         if (aVal === bVal) return 0;
         return sortConfig.direction === "asc"
-          ? aVal > bVal ? 1 : -1
-          : aVal < bVal ? 1 : -1;
+          ? aVal > bVal
+            ? 1
+            : -1
+          : aVal < bVal
+            ? 1
+            : -1;
       });
     }
 
@@ -141,7 +164,8 @@ export default function WafersPage() {
   const getElementColor = (element, value) => {
     if (value === 0) return "text-gray-400";
     if (element === "Ti" && value > 0) return "text-red-600 font-bold";
-    if ((element === "Ni" || element === "Al") && value > 0) return "text-orange-600 font-bold";
+    if ((element === "Ni" || element === "Al") && value > 0)
+      return "text-orange-600 font-bold";
     if (value > 10) return "text-red-600 font-semibold";
     if (value > 5) return "text-orange-600 font-semibold";
     return "text-gray-700";
@@ -150,11 +174,10 @@ export default function WafersPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="p-8 max-w-7xl mx-auto space-y-6">
-        
         {/* Back Button */}
         <div className="max-w-xl mx-auto">
           <Link
-            href="/"
+            href="/main"
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-orange-600 transition-colors"
           >
             ← Back to Home
@@ -165,7 +188,9 @@ export default function WafersPage() {
         <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">📀 CU Wafers Analysis</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                📀 CU Wafers Analysis
+              </h1>
               <p className="text-gray-500 text-sm mt-1">
                 Detailed defect and elemental composition data
               </p>
@@ -182,11 +207,17 @@ export default function WafersPage() {
           {!loading && !error && wafers.length > 0 && (
             <div className="grid grid-cols-5 gap-4 pt-4 border-t">
               <div className="bg-blue-50 rounded-lg p-4">
-                <div className="text-sm text-blue-600 font-medium">Total Wafers</div>
-                <div className="text-2xl font-bold text-blue-900 mt-1">{stats.total}</div>
+                <div className="text-sm text-blue-600 font-medium">
+                  Total Wafers
+                </div>
+                <div className="text-2xl font-bold text-blue-900 mt-1">
+                  {stats.total}
+                </div>
               </div>
               <div className="bg-red-50 rounded-lg p-4">
-                <div className="text-sm text-red-600 font-medium">With Defects</div>
+                <div className="text-sm text-red-600 font-medium">
+                  With Defects
+                </div>
                 <div className="text-2xl font-bold text-red-900 mt-1">
                   {stats.withDefects}
                   <span className="text-sm text-red-600 ml-2">
@@ -195,11 +226,17 @@ export default function WafersPage() {
                 </div>
               </div>
               <div className="bg-purple-50 rounded-lg p-4">
-                <div className="text-sm text-purple-600 font-medium">Avg Defects</div>
-                <div className="text-2xl font-bold text-purple-900 mt-1">{stats.avg}</div>
+                <div className="text-sm text-purple-600 font-medium">
+                  Avg Defects
+                </div>
+                <div className="text-2xl font-bold text-purple-900 mt-1">
+                  {stats.avg}
+                </div>
               </div>
               <div className="bg-orange-50 rounded-lg p-4">
-                <div className="text-sm text-orange-600 font-medium">With Ti</div>
+                <div className="text-sm text-orange-600 font-medium">
+                  With Ti
+                </div>
                 <div className="text-2xl font-bold text-orange-900 mt-1">
                   {stats.withTi}
                   <span className="text-sm text-orange-600 ml-2">
@@ -208,7 +245,9 @@ export default function WafersPage() {
                 </div>
               </div>
               <div className="bg-yellow-50 rounded-lg p-4">
-                <div className="text-sm text-yellow-600 font-medium">With Metals</div>
+                <div className="text-sm text-yellow-600 font-medium">
+                  With Metals
+                </div>
                 <div className="text-2xl font-bold text-yellow-900 mt-1">
                   {stats.withMetals}
                   <span className="text-sm text-yellow-600 ml-2">
@@ -236,7 +275,9 @@ export default function WafersPage() {
               >
                 <option value="all">All Chambers</option>
                 {chambers.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
 
@@ -255,9 +296,13 @@ export default function WafersPage() {
                 onChange={(e) => setFilterEdx(e.target.value)}
                 className="col-span-4 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none bg-white"
               >
-                <option value="all">All EDX Categories ({edxOptions.length})</option>
+                <option value="all">
+                  All EDX Categories ({edxOptions.length})
+                </option>
                 {edxOptions.map((e) => (
-                  <option key={e} value={e}>{e}</option>
+                  <option key={e} value={e}>
+                    {e}
+                  </option>
                 ))}
               </select>
             </div>
@@ -294,22 +339,27 @@ export default function WafersPage() {
         )}
 
         {/* No Results */}
-        {!loading && !error && wafers.length > 0 && filteredWafers.length === 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <p className="text-gray-500">No wafers match your search criteria.</p>
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                setFilterChamber("all");
-                setDefectFilter("all");
-                setFilterEdx("all");
-              }}
-              className="mt-4 text-orange-600 hover:text-orange-700 font-medium"
-            >
-              Clear all filters
-            </button>
-          </div>
-        )}
+        {!loading &&
+          !error &&
+          wafers.length > 0 &&
+          filteredWafers.length === 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+              <p className="text-gray-500">
+                No wafers match your search criteria.
+              </p>
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setFilterChamber("all");
+                  setDefectFilter("all");
+                  setFilterEdx("all");
+                }}
+                className="mt-4 text-orange-600 hover:text-orange-700 font-medium"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
 
         {/* Table */}
         {!loading && !error && filteredWafers.length > 0 && (
@@ -355,7 +405,8 @@ export default function WafersPage() {
                       className="p-4 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        Inspection Time <span>{getSortIcon("inspectionTime")}</span>
+                        Inspection Time{" "}
+                        <span>{getSortIcon("inspectionTime")}</span>
                       </div>
                     </th>
                     <th
@@ -366,7 +417,9 @@ export default function WafersPage() {
                         Defects <span>{getSortIcon("defectCount")}</span>
                       </div>
                     </th>
-                    <th className="p-4 text-left font-semibold text-gray-700">EDX Categories</th>
+                    <th className="p-4 text-left font-semibold text-gray-700">
+                      EDX Categories
+                    </th>
                     <th className="p-4 text-left font-semibold text-gray-700">
                       Elements (Max %)
                     </th>
@@ -375,7 +428,10 @@ export default function WafersPage() {
 
                 <tbody className="divide-y divide-gray-200">
                   {filteredWafers.map((w) => (
-                    <tr key={w.waferId} className="hover:bg-gray-50 transition-colors">
+                    <tr
+                      key={w.waferId}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
                       <td className="p-4 font-medium">
                         <Link
                           href={`/wafer/${w.waferId}`}
@@ -395,15 +451,17 @@ export default function WafersPage() {
                         {new Date(w.inspectionTime).toLocaleString()}
                       </td>
                       <td className="p-4 text-center">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                          w.defectCount === 0
-                            ? "bg-green-100 text-green-700"
-                            : w.defectCount < 5
-                            ? "bg-yellow-100 text-yellow-700"
-                            : w.defectCount < 10
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-red-100 text-red-700"
-                        }`}>
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                            w.defectCount === 0
+                              ? "bg-green-100 text-green-700"
+                              : w.defectCount < 5
+                                ? "bg-yellow-100 text-yellow-700"
+                                : w.defectCount < 10
+                                  ? "bg-orange-100 text-orange-700"
+                                  : "bg-red-100 text-red-700"
+                          }`}
+                        >
                           {w.defectCount || 0}
                         </span>
                       </td>
@@ -418,7 +476,9 @@ export default function WafersPage() {
                             </span>
                           ))}
                           {(!w.edx || w.edx.length === 0) && (
-                            <span className="text-gray-400 text-xs">No data</span>
+                            <span className="text-gray-400 text-xs">
+                              No data
+                            </span>
                           )}
                         </div>
                       </td>
@@ -426,9 +486,14 @@ export default function WafersPage() {
                         <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-mono">
                           {Object.entries(w.elements).map(([k, v]) => (
                             <div key={k} className={getElementColor(k, v)}>
-                              <span className="font-semibold">{k}:</span> {v.toFixed(1)}
-                              {v > 0 && k === "Ti" && <span className="ml-1">⚠️</span>}
-                              {v > 0 && (k === "Ni" || k === "Al") && <span className="ml-1">⚡</span>}
+                              <span className="font-semibold">{k}:</span>{" "}
+                              {v.toFixed(1)}
+                              {v > 0 && k === "Ti" && (
+                                <span className="ml-1">⚠️</span>
+                              )}
+                              {v > 0 && (k === "Ni" || k === "Al") && (
+                                <span className="ml-1">⚡</span>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -442,9 +507,13 @@ export default function WafersPage() {
             {/* Footer */}
             <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between text-sm">
               <div className="text-gray-600">
-                Showing {filteredWafers.length} of {wafers.length} wafer{wafers.length !== 1 ? "s" : ""}
+                Showing {filteredWafers.length} of {wafers.length} wafer
+                {wafers.length !== 1 ? "s" : ""}
               </div>
-              {(searchTerm || filterChamber !== "all" || defectFilter !== "all" || filterEdx !== "all") && (
+              {(searchTerm ||
+                filterChamber !== "all" ||
+                defectFilter !== "all" ||
+                filterEdx !== "all") && (
                 <button
                   onClick={() => {
                     setSearchTerm("");
@@ -464,24 +533,33 @@ export default function WafersPage() {
         {/* Legend */}
         {!loading && !error && filteredWafers.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="font-semibold text-gray-900 mb-3">Element Indicators</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">
+              Element Indicators
+            </h3>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-red-600 font-bold">⚠️ Ti (Red)</span>
-                <span className="text-gray-600">- Hardware erosion critical</span>
+                <span className="text-gray-600">
+                  - Hardware erosion critical
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-orange-600 font-bold">⚡ Ni/Al (Orange)</span>
-                <span className="text-gray-600">- Mechanical wear detected</span>
+                <span className="text-orange-600 font-bold">
+                  ⚡ Ni/Al (Orange)
+                </span>
+                <span className="text-gray-600">
+                  - Mechanical wear detected
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-gray-700 font-semibold">&gt;5% (Bold)</span>
+                <span className="text-gray-700 font-semibold">
+                  &gt;5% (Bold)
+                </span>
                 <span className="text-gray-600">- Elevated levels</span>
               </div>
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

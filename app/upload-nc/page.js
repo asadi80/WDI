@@ -1,14 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import Link from "next/link";
 
 export default function UploadNCPage() {
+     const router = useRouter();
+
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+ useEffect(() => {
+    const token = localStorage.getItem("token");
 
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+
+    // ✅ token exists → allow page
+  }, []);
   const handleUpload = async () => {
+    
     if (!file) {
       setStatus("❌ Please select an NC Excel file");
       return;
@@ -21,8 +35,13 @@ export default function UploadNCPage() {
     formData.append("file", file);
 
     try {
+       const token = localStorage.getItem("token");
       const res = await fetch("/api/upload-nc", {
         method: "POST",
+         headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: formData
       });
 
@@ -47,7 +66,7 @@ export default function UploadNCPage() {
          {/* 🔙 HOME */}
               <div className="max-w-xl mx-auto mb-4">
                 <Link
-                  href="/"
+                  href="/main"
                   className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 transition"
                 >
                   ← Back to Home

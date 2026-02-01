@@ -1,55 +1,78 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Upload, ClipboardPaste, Image as ImageIcon } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { Upload, ClipboardPaste } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import ToolLayout from "@/components/tool-layout/ToolLayout";
 import WaferCanvas from "@/components/tool-layout/WaferCanvas";
 import { MODULES } from "@/components/tool-layout/MODULES";
 
 export default function WaferImagePage() {
-  const [image, setImage] = useState(null);
-  const [moduleKey, setModuleKey] = useState("PM2ST1");
+  const router = useRouter();
   const fileRef = useRef(null);
 
-  /* ---------- File upload ---------- */
+  /* ---------- auth ---------- */
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) router.replace("/login");
+    else setLoading(false);
+  }, [router]);
+
+  /* ---------- images ---------- */
+  const [lpImage, setLpImage] = useState(null);
+  const [moduleImage, setModuleImage] = useState(null);
+
+  /* ---------- selected modules ---------- */
+  const [lpKey, setLpKey] = useState("LP1");
+  const [moduleKey, setModuleKey] = useState("PM2ST1");
+
+  /* ---------- upload → COPY TO BOTH ---------- */
   const handleFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImage(URL.createObjectURL(file));
+
+    const url = URL.createObjectURL(file);
+
+    setLpImage(url);
+    setModuleImage(url);
   };
 
-  /* ---------- Paste button ---------- */
   const handlePasteClick = async () => {
-    try {
-      if (!navigator.clipboard?.read) {
-        alert("Clipboard image paste not supported in this browser.");
-        return;
-      }
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      for (const type of item.types) {
+        if (type.startsWith("image/")) {
+          const blob = await item.getType(type);
+          const url = URL.createObjectURL(blob);
 
-      const items = await navigator.clipboard.read();
-
-      for (const item of items) {
-        for (const type of item.types) {
-          if (type.startsWith("image/")) {
-            const blob = await item.getType(type);
-            setImage(URL.createObjectURL(blob));
-            return;
-          }
+          setLpImage(url);
+          setModuleImage(url);
+          return;
         }
       }
-
-      alert("No image found in clipboard.");
-    } catch (err) {
-      console.error(err);
-      alert("Unable to read from clipboard. Try Ctrl+V instead.");
     }
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-green-600 mb-4" />
+        Loading…
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap items-center gap-4">
-        {/* Hidden input */}
+        <Link href="/main" className="text-sm text-gray-600">
+          ← Back
+        </Link>
+
         <input
           ref={fileRef}
           type="file"
@@ -58,62 +81,76 @@ export default function WaferImagePage() {
           className="hidden"
         />
 
-        {/* Upload button */}
         <button
           onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 shadow-sm text-sm font-medium transition"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border bg-white"
         >
           <Upload className="w-4 h-4" />
           Upload Image
         </button>
 
-        {/* Paste button */}
         <button
           onClick={handlePasteClick}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 shadow-sm text-sm font-medium transition"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border bg-white"
         >
           <ClipboardPaste className="w-4 h-4" />
-          Paste from Clipboard
+          Paste
         </button>
 
-        {/* Preview indicator */}
-        {image && (
-          <div className="flex items-center gap-1 text-green-600 text-sm">
-            <ImageIcon className="w-4 h-4" />
-            Image loaded
-          </div>
-        )}
+        {/* LP selector */}
+        <select
+          value={lpKey}
+          onChange={(e) => setLpKey(e.target.value)}
+          className="border rounded-xl px-3 py-2 bg-white text-sm"
+        >
+          <option value="LP1">LP1</option>
+          <option value="LP2">LP2</option>
+          <option value="LP3">LP3</option>
+        </select>
 
-        {/* Module selector */}
+        {/* Other modules selector */}
         <select
           value={moduleKey}
           onChange={(e) => setModuleKey(e.target.value)}
-          className="border rounded-xl px-3 py-2 text-sm bg-white"
+          className="border rounded-xl px-3 py-2 bg-white text-sm"
         >
-          {Object.keys(MODULES).map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
+          {Object.keys(MODULES)
+            .filter((m) => !m.startsWith("LP"))
+            .map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
         </select>
       </div>
 
+      {/* ✅ BOTH ALWAYS RENDERED */}
       <ToolLayout activeModule={moduleKey}>
-        {image && (
+        {/* LP IMAGE */}
+        {lpImage && MODULES[lpKey] && (
           <div
-            className="absolute pointer-events-none"
+            className="opacity-60 absolute pointer-events-none"
             style={{
-              left:
-                MODULES[moduleKey].x +
-                MODULES[moduleKey].w / 2 -
-                62,
-              top:
-                MODULES[moduleKey].y +
-                MODULES[moduleKey].h / 2 -
-                62,
+              left: MODULES[lpKey].x + MODULES[lpKey].w / 2 - 62,
+              top: MODULES[lpKey].y + MODULES[lpKey].h / 2 - 62,
             }}
           >
-            <WaferCanvas moduleKey={moduleKey} imageSrc={image} />
+            <WaferCanvas imageSrc={lpImage} moduleKey={lpKey} />
+          </div>
+        )}
+
+        {/* OTHER MODULE IMAGE */}
+        {moduleImage && MODULES[moduleKey] && (
+          <div
+            className="opacity-60 absolute pointer-events-none"
+            style={{
+              left:
+                MODULES[moduleKey].x + MODULES[moduleKey].w / 2 - 62,
+              top:
+                MODULES[moduleKey].y + MODULES[moduleKey].h / 2 - 62,
+            }}
+          >
+            <WaferCanvas imageSrc={moduleImage} moduleKey={moduleKey} />
           </div>
         )}
       </ToolLayout>

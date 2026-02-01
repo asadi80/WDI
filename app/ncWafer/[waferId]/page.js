@@ -23,14 +23,26 @@ export default function NCWaferDetail() {
   const [manualLocation, setManualLocation] = useState("");
   const [selectedDefect, setSelectedDefect] = useState(null);
   const [filterEDX, setFilterEDX] = useState("all");
-  const [sortConfig, setSortConfig] = useState({ key: "defectSize", direction: "desc" });
-  
+  const [sortConfig, setSortConfig] = useState({
+    key: "defectSize",
+    direction: "desc",
+  });
+
   const canvasRef = useRef(null);
 
   // Fetch NC wafer data
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/ncWafers/${waferId}`)
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+    fetch(`/api/ncWafers/${waferId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch wafer data");
         return res.json();
@@ -59,7 +71,10 @@ export default function NCWaferDetail() {
       maxSize = Math.max(maxSize, d.defectSize || 0);
     });
 
-    const avgSize = data.defects.length > 0 ? (totalSize / data.defects.length).toFixed(2) : 0;
+    const avgSize =
+      data.defects.length > 0
+        ? (totalSize / data.defects.length).toFixed(2)
+        : 0;
 
     return { edxCounts, avgSize, maxSize, totalDefects: data.defects.length };
   }, [data]);
@@ -77,9 +92,9 @@ export default function NCWaferDetail() {
       filtered.sort((a, b) => {
         const aVal = a[sortConfig.key];
         const bVal = b[sortConfig.key];
-        
+
         if (aVal === bVal) return 0;
-        
+
         const comparison = aVal > bVal ? 1 : -1;
         return sortConfig.direction === "asc" ? comparison : -comparison;
       });
@@ -96,7 +111,8 @@ export default function NCWaferDetail() {
   };
 
   const SortIcon = ({ column }) => {
-    if (sortConfig.key !== column) return <span className="text-gray-300">⇅</span>;
+    if (sortConfig.key !== column)
+      return <span className="text-gray-300">⇅</span>;
     return sortConfig.direction === "asc" ? <span>↑</span> : <span>↓</span>;
   };
 
@@ -132,11 +148,11 @@ export default function NCWaferDetail() {
     ctx.moveTo(cx, cy + r);
     ctx.lineTo(
       cx + Math.sin(notchAngle) * (r - notchDepth),
-      cy + Math.cos(notchAngle) * (r - notchDepth)
+      cy + Math.cos(notchAngle) * (r - notchDepth),
     );
     ctx.lineTo(
       cx - Math.sin(notchAngle) * (r - notchDepth),
-      cy + Math.cos(notchAngle) * (r - notchDepth)
+      cy + Math.cos(notchAngle) * (r - notchDepth),
     );
     ctx.closePath();
     ctx.fill();
@@ -157,7 +173,7 @@ export default function NCWaferDetail() {
       const y = cy - d.y;
 
       const isSelected = selectedDefect === i;
-      
+
       ctx.fillStyle = EDX_COLORS[d.edxCategory] || "#888";
       ctx.beginPath();
       ctx.arc(x, y, isSelected ? 5 : 3, 0, Math.PI * 2);
@@ -207,12 +223,12 @@ export default function NCWaferDetail() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/main")}
               className="text-sm text-gray-600 hover:text-green-600 transition-colors mb-2 inline-flex items-center gap-1"
             >
               Back to Home
             </button>
-             <button
+            <button
               onClick={() => router.push("/nc-wafers")}
               className="text-sm text-gray-600 hover:text-green-600 transition-colors mb-2 inline-flex items-center gap-1 ml-5"
             >
@@ -230,16 +246,24 @@ export default function NCWaferDetail() {
         {/* Statistics Cards */}
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-red-50 rounded-lg p-4">
-            <div className="text-sm text-red-600 font-medium">Total Defects</div>
-            <div className="text-2xl font-bold text-red-900 mt-1">{stats.totalDefects}</div>
+            <div className="text-sm text-red-600 font-medium">
+              Total Defects
+            </div>
+            <div className="text-2xl font-bold text-red-900 mt-1">
+              {stats.totalDefects}
+            </div>
           </div>
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="text-sm text-blue-600 font-medium">Avg Size</div>
-            <div className="text-2xl font-bold text-blue-900 mt-1">{stats.avgSize}</div>
+            <div className="text-2xl font-bold text-blue-900 mt-1">
+              {stats.avgSize}
+            </div>
           </div>
           <div className="bg-purple-50 rounded-lg p-4">
             <div className="text-sm text-purple-600 font-medium">Max Size</div>
-            <div className="text-2xl font-bold text-purple-900 mt-1">{stats.maxSize}</div>
+            <div className="text-2xl font-bold text-purple-900 mt-1">
+              {stats.maxSize}
+            </div>
           </div>
           <div className="bg-orange-50 rounded-lg p-4">
             <div className="text-sm text-orange-600 font-medium">EDX Types</div>
@@ -309,13 +333,20 @@ export default function NCWaferDetail() {
                     <div className="flex items-center gap-2">
                       <span
                         className="w-3 h-3 rounded"
-                        style={{ backgroundColor: EDX_COLORS[filteredDefects[selectedDefect].edxCategory] }}
+                        style={{
+                          backgroundColor:
+                            EDX_COLORS[
+                              filteredDefects[selectedDefect].edxCategory
+                            ],
+                        }}
                       />
                       <span>{filteredDefects[selectedDefect].edxCategory}</span>
                     </div>
                     <div>X: {filteredDefects[selectedDefect].x}</div>
                     <div>Y: {filteredDefects[selectedDefect].y}</div>
-                    <div>Size: {filteredDefects[selectedDefect].defectSize}</div>
+                    <div>
+                      Size: {filteredDefects[selectedDefect].defectSize}
+                    </div>
                   </div>
                 </div>
               )}
@@ -326,10 +357,15 @@ export default function NCWaferDetail() {
               <h3 className="font-medium">EDX Legend</h3>
               {Object.entries(EDX_COLORS).map(([k, c]) => {
                 const count = stats.edxCounts[k] || 0;
-                const percentage = ((count / stats.totalDefects) * 100).toFixed(1);
-                
+                const percentage = ((count / stats.totalDefects) * 100).toFixed(
+                  1,
+                );
+
                 return (
-                  <div key={k} className="flex items-center justify-between gap-4">
+                  <div
+                    key={k}
+                    className="flex items-center justify-between gap-4"
+                  >
                     <div className="flex items-center gap-2">
                       <span
                         className="w-4 h-4 rounded"
@@ -373,7 +409,9 @@ export default function NCWaferDetail() {
                 <span className="font-medium">{data.wafer.week}</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-gray-500 text-xs mb-1">Parent Entity</span>
+                <span className="text-gray-500 text-xs mb-1">
+                  Parent Entity
+                </span>
                 <span className="font-medium">{data.wafer.parentEntity}</span>
               </div>
               <div className="flex flex-col">
@@ -391,8 +429,10 @@ export default function NCWaferDetail() {
               {Object.entries(stats.edxCounts)
                 .sort((a, b) => b[1] - a[1])
                 .map(([k, v]) => {
-                  const percentage = ((v / stats.totalDefects) * 100).toFixed(1);
-                  
+                  const percentage = ((v / stats.totalDefects) * 100).toFixed(
+                    1,
+                  );
+
                   return (
                     <div key={k} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
@@ -437,11 +477,11 @@ export default function NCWaferDetail() {
       </div>
 
       {/* ADD THIS - Defect Diagnostics */}
-<DefectDiagnostics 
-  defects={data.defects} 
-  chamber={data.wafer.chamber}
-  waferType="NC"
-/>
+      <DefectDiagnostics
+        defects={data.defects}
+        chamber={data.wafer.chamber}
+        waferType="NC"
+      />
 
       {/* Defect Table */}
       <div className="bg-white rounded-xl shadow-sm p-6">

@@ -1,8 +1,31 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import jwt from "jsonwebtoken";
+
 
 export async function GET(req, context) {
   try {
+
+      /* 🔐 Verify token */
+    const auth = req.headers.get("authorization");
+    if (!auth || !auth.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const token = auth.split(" ")[1];
+
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid token" },
+        { status: 401 }
+      );
+    }
+    
     // 🔑 params is async in Next 15
     const { waferId } = await context.params;
 

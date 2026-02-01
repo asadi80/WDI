@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { parseAndValidateExcel } from "@/lib/parseExcel";
 import { computeWaferFeatures } from "@/lib/computeFeatures";
+import jwt from "jsonwebtoken";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,25 @@ function computeEdxCategory(row) {
 /* -------------------- route -------------------- */
 
 export async function POST(req) {
+    /* 🔐 Verify token */
+    const auth = req.headers.get("authorization");
+    if (!auth || !auth.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const token = auth.split(" ")[1];
+
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid token" },
+        { status: 401 }
+      );
+    }
   console.log("🚀 /api/upload called");
 
   try {

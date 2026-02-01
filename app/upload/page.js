@@ -1,13 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function UploadPage() {
+   const router = useRouter();
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+ useEffect(() => {
+    const token = localStorage.getItem("token");
+    setLoading(true);
 
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+
+    // ✅ token exists → allow page
+    setLoading(false);
+  }, []);
   async function upload() {
     if (!file) {
       setStatus("❌ Please select a CU Excel file");
@@ -22,8 +35,13 @@ export default function UploadPage() {
     formData.append("type", "reference");
 
     try {
+       const token = localStorage.getItem("token");
       const res = await fetch("/api/upload", {
         method: "POST",
+         headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 
@@ -49,7 +67,7 @@ export default function UploadPage() {
       {/* 🔙 HOME */}
       <div className="max-w-xl mx-auto mb-4">
         <Link
-          href="/"
+          href="/main"
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-orange-600 transition"
         >
           ← Back to Home

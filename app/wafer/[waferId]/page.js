@@ -29,7 +29,12 @@ export default function WaferDetail() {
 
   // Fetch wafer data
   useEffect(() => {
-    setLoading(true);
+      const token = localStorage.getItem("token");
+
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
     fetch(`/api/wafers/${waferId}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch wafer data");
@@ -210,7 +215,7 @@ export default function WaferDetail() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/main")}
               className="text-sm text-gray-600 hover:text-orange-600 transition-colors mb-2 inline-flex items-center gap-1"
             >
               Back to Home

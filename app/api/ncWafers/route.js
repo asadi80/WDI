@@ -1,8 +1,29 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
+import jwt from "jsonwebtoken";
 
-export async function GET() {
+
+export async function GET(req) {
   try {
+     /* 🔐 Verify token */
+    const auth = req.headers.get("authorization");
+    if (!auth || !auth.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const token = auth.split(" ")[1];
+
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid token" },
+        { status: 401 }
+      );
+    }
     // 1️⃣ MongoDB (same as CU & NC upload)
     const client = await clientPromise;
     const db = client.db("waferdb");
