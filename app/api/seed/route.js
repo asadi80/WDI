@@ -1,4 +1,4 @@
-import { connectDB } from "@/lib/mongodb";
+// import { connectDB } from "@/lib/mongodb";
 import { seedAdmin } from "@/lib/seedAdmin";
 
 export async function GET() {
